@@ -558,9 +558,14 @@ function updateLearningPanel() {
     
     // Update address parser statistics
     if (addressParserAPI && addressParserAPI.isInitialized) {
-        const dbSize = addressParserAPI.parser.addressDatabase.length;
-        const learningData = addressParserAPI.exportData();
-        document.getElementById('suggestionCount').textContent = `${dbSize} addresses`;
+        try {
+            const stats = addressParserAPI.getLearningStats();
+            const dbSize = addressParserAPI.parser.addressDatabase.length;
+            document.getElementById('suggestionCount').textContent = `${stats.learnedWords + stats.addressPatterns} learned items`;
+        } catch (error) {
+            console.error('Error getting learning stats:', error);
+            document.getElementById('suggestionCount').textContent = '0 suggestions';
+        }
     } else {
         document.getElementById('suggestionCount').textContent = '0 suggestions';
     }
@@ -569,7 +574,7 @@ function updateLearningPanel() {
 function exportLearningData() {
     const exportData = {
         shippingData: learningData,
-        addressParserData: addressParserAPI ? addressParserAPI.exportData() : null
+        addressParserData: addressParserAPI ? addressParserAPI.exportLearningData() : null
     };
     
     const dataStr = JSON.stringify(exportData, null, 2);
@@ -596,6 +601,12 @@ function importLearningData() {
             // Check if file is CSV
             if (!file.name.toLowerCase().endsWith('.csv')) {
                 showDatabaseStatus('Please select a CSV file', 'error');
+                return;
+            }
+
+            // Check if AddressParserAPI is available
+            if (typeof AddressParserAPI === 'undefined') {
+                showDatabaseStatus('Address Parser API not loaded. Please refresh the page.', 'error');
                 return;
             }
 
@@ -628,6 +639,12 @@ function importLearningData() {
 
         async function loadSampleDatabase() {
             try {
+                // Check if AddressParserAPI is available
+                if (typeof AddressParserAPI === 'undefined') {
+                    showDatabaseStatus('Address Parser API not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
                 // Create sample database content directly in JavaScript
                 const sampleCsvContent = `provinsi,kabupaten_kota,kecamatan,kelurahan_desa,kode_pos
 DKI Jakarta,Jakarta Pusat,Tanah Abang,Sukamaju,10120
@@ -673,6 +690,7 @@ Sumatera Barat,Padang,Padang Selatan,Seberang Padang,25127`;
                 updateLearningPanel();
             } catch (error) {
                 showDatabaseStatus(`Error loading sample database: ${error.message}`, 'error');
+                console.error('Sample database loading error:', error);
             }
         }
 
@@ -740,36 +758,45 @@ function updateSuggestionsAndCorrections() {
     if (!suggestionsList || !correctionsList) return;
 
     // Get suggestions for the last processed address
-    if (parsedData.length > 0) {
+    if (parsedData.length > 0 && addressParserAPI && addressParserAPI.isInitialized) {
         const lastAddress = parsedData[parsedData.length - 1].alamatPenerima;
-        const suggestions = addressParserAPI.suggestCompletion(lastAddress);
-        const corrections = addressParserAPI.correctAddress(lastAddress);
+        
+        try {
+            const parseResult = addressParserAPI.parseAddress(lastAddress);
+            const suggestions = parseResult.suggestions || [];
+            const corrections = parseResult.corrections || [];
 
-        // Display suggestions
-        if (suggestions.length > 0) {
-            suggestionsList.innerHTML = suggestions.map(s => `
-                <div class="mb-2 p-2 border rounded">
-                    <small class="text-muted">Similarity: ${(s.similarity * 100).toFixed(1)}%</small><br>
-                    <strong>${s.kelurahan_desa}, ${s.kecamatan}</strong><br>
-                    <small>${s.kabupaten_kota}, ${s.provinsi} (${s.kode_pos})</small>
-                </div>
-            `).join('');
-        } else {
-            suggestionsList.innerHTML = '<p class="text-muted">No similar addresses found</p>';
-        }
+            // Display suggestions
+            if (suggestions.length > 0) {
+                suggestionsList.innerHTML = suggestions.map(s => `
+                    <div class="mb-2 p-2 border rounded">
+                        <small class="text-muted">Suggestion</small><br>
+                        <strong>${s}</strong>
+                    </div>
+                `).join('');
+            } else {
+                suggestionsList.innerHTML = '<p class="text-muted">No similar addresses found</p>';
+            }
 
-        // Display corrections
-        if (corrections.length > 0) {
-            correctionsList.innerHTML = corrections.map(c => `
-                <div class="mb-2 p-2 border rounded">
-                    <small class="text-muted">Level: ${c.level}</small><br>
-                    <strong>${c.original}</strong> → <strong class="text-success">${c.suggestion}</strong><br>
-                    <small>Distance: ${c.distance}</small>
-                </div>
-            `).join('');
-        } else {
-            correctionsList.innerHTML = '<p class="text-muted">No spelling corrections needed</p>';
+            // Display corrections
+            if (corrections.length > 0) {
+                correctionsList.innerHTML = corrections.map(c => `
+                    <div class="mb-2 p-2 border rounded">
+                        <small class="text-muted">Correction</small><br>
+                        <strong>${c.original}</strong> → <strong class="text-success">${c.suggested}</strong>
+                    </div>
+                `).join('');
+            } else {
+                correctionsList.innerHTML = '<p class="text-muted">No spelling corrections needed</p>';
+            }
+        } catch (error) {
+            console.error('Error getting suggestions:', error);
+            suggestionsList.innerHTML = '<p class="text-muted">Error loading suggestions</p>';
+            correctionsList.innerHTML = '<p class="text-muted">Error loading corrections</p>';
         }
+    } else {
+        suggestionsList.innerHTML = '<p class="text-muted">No address database loaded</p>';
+        correctionsList.innerHTML = '<p class="text-muted">No address database loaded</p>';
     }
 }
 
@@ -781,21 +808,15 @@ function parseIndonesianAddressWithAI(address) {
     }
 
     try {
-        const result = addressParserAPI.parseAddress(`ALAMAT: ${address}`);
-        
-        // Get suggestions for address completion
-        const suggestions = addressParserAPI.suggestCompletion(address);
-        
-        // Get corrections for misspelled words
-        const corrections = addressParserAPI.correctAddress(address);
+        const result = addressParserAPI.parseAddress(address);
         
         return {
-            kecamatan: result.extracted.kecamatan || '',
-            kota: result.extracted.kabupaten_kota || result.extracted.provinsi || '',
+            kecamatan: result.parsed.kecamatan || '',
+            kota: result.parsed.kabupaten_kota || result.parsed.provinsi || '',
             confidence: result.confidence,
-            suggestions: suggestions.slice(0, 3),
-            corrections: corrections.slice(0, 5),
-            postalCode: result.extracted.kode_pos || ''
+            suggestions: result.suggestions || [],
+            corrections: result.corrections || [],
+            postalCode: result.parsed.kode_pos || ''
         };
     } catch (error) {
         console.error('AI address parsing error:', error);
@@ -860,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // New format with both shipping and address parser data
                         learningData = importedData.shippingData;
                         if (addressParserAPI) {
-                            addressParserAPI.importData(importedData.addressParserData);
+                            addressParserAPI.importLearningData(importedData.addressParserData);
                         }
                     } else {
                         // Old format - just shipping data
