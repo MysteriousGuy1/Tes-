@@ -809,10 +809,11 @@ function parseIndonesianAddressWithAI(address) {
 
     try {
         const result = addressParserAPI.parseAddress(address);
-        
+
+        // Use both kabupaten_kota and kota as fallback, and kecamatan
         return {
-            kecamatan: result.parsed.kecamatan || '',
-            kota: result.parsed.kabupaten_kota || result.parsed.provinsi || '',
+            kecamatan: result.parsed.kecamatan || result.parsed.kecamatan_penerima || '',
+            kota: result.parsed.kabupaten_kota || result.parsed.kota || result.parsed.kota_penerima || result.parsed.provinsi || '',
             confidence: result.confidence,
             suggestions: result.suggestions || [],
             corrections: result.corrections || [],
