@@ -1,29 +1,25 @@
 Contoh format input
--------------------
-Harga produk: 118.000 (1)
-Ongkir kirim: 40.000(J&T)
+---------------------
+Harga: Rp118.000  
+Ongkir: Rp18.000(J&T)  
 Biaya COD: 5.000
-Total: 163.000
-NAMA: Muhammad Muksin
-HP: +62 877-8872-4610
-ALAMAT: jln imam Bonjol GG masjid Jamik no 23 Singaraja Bali Kel kpnkajanan kab Buleleng provinsi bali RT 11 lingkungan tengah kp kajanan kec Buleleng
-**COD**
+Total: Rp141.000
+Nama: Mega Sari  
+No HP: +628301234567  
+Alamat: Jl. Diponegoro, Rt 01 Rw 09 Ds. Kedung Banteng Kec. Siman Kab. Madiun Prop. Jatim
 
-Produk: Promo Kapsul Pinang Solusi Herbal Indonesia FB (1)
-Harga: Rp118.000
-Ongkir: Rp10.000(JNE)
-Biaya COD: Rp5.000
-Total: Rp133.000
-Dikirim ke:
-Nama: Setiyono
-No HP: +6281380272327
-Alamat: Perum griya cileungsi 5 blok b6/03 RT/RW 03/18 Desa Mampir cileungsi Bogor
-**COD**
+Harga: Rp259.000  
+Ongkir: Rp38.000(JNE)  
+Biaya COD: 5.000  
+Total: Rp302.000
+Nama: Tika Rahma  
+No HP: +628312345678  
+Alamat: Jl. Ahmad Yani, Rt 02 Rw 01 Ds. Sawuh Kec. Jetis Kab. Ponorogo Prop. Jatim
 
-Harga produk: 259.000 (1)
-Ongkir kirim: 15.000(LION)
-Total: 274.000
-NAMA: Budi Santoso
-HP: +62 812-3456-7890
-ALAMAT: Jl. Merdeka No. 123 RT 05 RW 02 Kelurahan Sukamaju Kecamatan Tanah Abang Jakarta Pusat
-**TRANSFER**
+Harga: Rp159.000
+Ongkir: Rp14.000(LION)  
+Biaya COD: 5.000 
+Total: Rp178.000  
+Nama: Yusuf Setiawan  
+No HP: +628323456789  
+Alamat: Jl. Siliwangi, Rt 03 Rw 02 Ds. Karangrejo Kec. Pulung Kab. Trenggalek Prop. Jatim
