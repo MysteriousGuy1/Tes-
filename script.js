@@ -588,48 +588,93 @@ function importLearningData() {
     document.getElementById('learningDataInput').click();
 }
 
-// Address Parser Functions
-async function loadAddressDatabase(input) {
-    const file = input.files[0];
-    if (!file) return;
+        // Address Parser Functions
+        async function loadAddressDatabase(input) {
+            const file = input.files[0];
+            if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const csvContent = e.target.result;
-            
-            // Initialize address parser if not already done
-            if (!addressParserAPI) {
-                addressParserAPI = new AddressParserAPI();
+            // Check if file is CSV
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showDatabaseStatus('Please select a CSV file', 'error');
+                return;
             }
-            
-            await addressParserAPI.initialize(csvContent);
-            
-            showDatabaseStatus(`Database loaded successfully with ${addressParserAPI.parser.addressDatabase.length} records`, 'success');
-            updateLearningPanel();
-        } catch (error) {
-            showDatabaseStatus(`Error loading database: ${error.message}`, 'error');
-        }
-    };
-    reader.readAsText(file);
-}
 
-async function loadSampleDatabase() {
-    try {
-        const response = await fetch('sample-address-database.csv');
-        const csvContent = await response.text();
-        
-        if (!addressParserAPI) {
-            addressParserAPI = new AddressParserAPI();
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const csvContent = e.target.result;
+                    
+                    // Initialize address parser if not already done
+                    if (!addressParserAPI) {
+                        addressParserAPI = new AddressParserAPI();
+                    }
+                    
+                    await addressParserAPI.initialize(csvContent);
+                    
+                    showDatabaseStatus(`Database loaded successfully with ${addressParserAPI.parser.addressDatabase.length} records`, 'success');
+                    updateLearningPanel();
+                } catch (error) {
+                    showDatabaseStatus(`Error loading database: ${error.message}`, 'error');
+                    console.error('Database loading error:', error);
+                }
+            };
+            
+            reader.onerror = function() {
+                showDatabaseStatus('Error reading file. Please try again.', 'error');
+            };
+            
+            reader.readAsText(file);
         }
-        
-        await addressParserAPI.initialize(csvContent);
-        showDatabaseStatus(`Sample database loaded with ${addressParserAPI.parser.addressDatabase.length} records`, 'success');
-        updateLearningPanel();
-    } catch (error) {
-        showDatabaseStatus(`Error loading sample database: ${error.message}`, 'error');
-    }
-}
+
+        async function loadSampleDatabase() {
+            try {
+                // Create sample database content directly in JavaScript
+                const sampleCsvContent = `provinsi,kabupaten_kota,kecamatan,kelurahan_desa,kode_pos
+DKI Jakarta,Jakarta Pusat,Tanah Abang,Sukamaju,10120
+DKI Jakarta,Jakarta Pusat,Tanah Abang,Kebon Melati,10120
+DKI Jakarta,Jakarta Pusat,Tanah Abang,Kebon Kacang,10120
+DKI Jakarta,Jakarta Selatan,Kebayoran Baru,Selong,12110
+DKI Jakarta,Jakarta Selatan,Kebayoran Baru,Gunung,12120
+DKI Jakarta,Jakarta Barat,Grogol Petamburan,Grogol,11450
+DKI Jakarta,Jakarta Utara,Penjaringan,Pluit,14450
+Jawa Barat,Bogor,Cileungsi,Mampir,16820
+Jawa Barat,Bogor,Cileungsi,Cileungsi,16820
+Jawa Barat,Bekasi,Bekasi Utara,Kranji,17142
+Jawa Barat,Bekasi,Bekasi Utara,Kayu Tinggi,17142
+Jawa Barat,Bandung,Bandung Wetan,Citarum,40115
+Jawa Barat,Bandung,Bandung Wetan,Citarum,40115
+Jawa Tengah,Semarang,Semarang Tengah,Pindrikan Kidul,50131
+Jawa Tengah,Semarang,Semarang Tengah,Pindrikan Lor,50131
+Jawa Tengah,Solo,Solo,Kemlayan,57121
+Jawa Tengah,Solo,Solo,Serengan,57155
+Jawa Timur,Surabaya,Surabaya Pusat,Ketabang,60272
+Jawa Timur,Surabaya,Surabaya Pusat,Genteng,60272
+Jawa Timur,Malang,Malang,Klojen,65111
+Jawa Timur,Malang,Malang,Sukun,65147
+Bali,Buleleng,Buleleng,Kampung Kajanan,81113
+Bali,Buleleng,Buleleng,Kampung Baru,81113
+Bali,Denpasar,Denpasar Barat,Pemecutan,80118
+Bali,Denpasar,Denpasar Barat,Dauh Puri,80114
+Sumatera Utara,Medan,Medan Petisah,Petisah Tengah,20112
+Sumatera Utara,Medan,Medan Petisah,Petisah Hulu,20112
+Sumatera Utara,Medan,Medan Tuntungan,Tuntungan I,20135
+Sumatera Utara,Medan,Medan Tuntungan,Tuntungan II,20136
+Sumatera Barat,Padang,Padang Utara,Air Tawar Barat,25118
+Sumatera Barat,Padang,Padang Utara,Air Tawar Timur,25118
+Sumatera Barat,Padang,Padang Selatan,Ranah,25126
+Sumatera Barat,Padang,Padang Selatan,Seberang Padang,25127`;
+                
+                if (!addressParserAPI) {
+                    addressParserAPI = new AddressParserAPI();
+                }
+                
+                await addressParserAPI.initialize(sampleCsvContent);
+                showDatabaseStatus(`Sample database loaded with ${addressParserAPI.parser.addressDatabase.length} records`, 'success');
+                updateLearningPanel();
+            } catch (error) {
+                showDatabaseStatus(`Error loading sample database: ${error.message}`, 'error');
+            }
+        }
 
 function showDatabaseStatus(message, type) {
     const statusDiv = document.getElementById('databaseStatus');
