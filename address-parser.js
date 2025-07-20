@@ -160,13 +160,61 @@ class IndonesianAddressParser {
             detail_alamat: ''
         };
 
+        // Normalize address for matching
+        const normAddress = address.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ');
+
         // Extract postal code
         const postalCodeMatch = address.match(/\b\d{5}\b/);
         if (postalCodeMatch) {
             components.kode_pos = postalCodeMatch[0];
         }
 
-        // Extract administrative divisions using regex patterns
+        // Exact match for kecamatan from database
+        let bestKecamatan = '';
+        let bestKabupaten = '';
+        let bestProvinsi = '';
+        let maxKecLength = 0;
+        for (const kecamatan of this.kecamatanIndex.keys()) {
+            const normKec = kecamatan.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ');
+            const regex = new RegExp(`\\b${normKec}\\b`);
+            if (regex.test(normAddress) && normKec.length > maxKecLength) {
+                bestKecamatan = kecamatan;
+                // Get the first record for this kecamatan
+                const record = this.kecamatanIndex.get(kecamatan)[0];
+                bestKabupaten = record.kabupaten_kota;
+                bestProvinsi = record.provinsi;
+                maxKecLength = normKec.length;
+            }
+        }
+        if (bestKecamatan) {
+            components.kecamatan = bestKecamatan;
+            components.kabupaten_kota = bestKabupaten;
+            components.provinsi = bestProvinsi;
+        }
+
+        // Fallback: use regex for kecamatan/kabupaten/kota if not found in DB
+        if (!components.kecamatan) {
+            const kecamatanMatch = address.match(/(?:kec(?:amatan)?\.?\s*)([a-zA-Z0-9 \-]+)/i);
+            if (kecamatanMatch) {
+                components.kecamatan = kecamatanMatch[1].replace(/[,\.].*$/, '').trim();
+            }
+        }
+        if (!components.kabupaten_kota) {
+            const kabupatenMatch = address.match(/(?:kab(?:upaten)?\.?\s*|kota\s*)([a-zA-Z0-9 \-]+)/i);
+            if (kabupatenMatch) {
+                let kab = kabupatenMatch[1].replace(/[,\.].*$/, '').trim();
+                kab = kab.replace(/\bprov(insi)?\b.*$/i, '').trim();
+                components.kabupaten_kota = kab;
+            }
+        }
+        if (!components.provinsi) {
+            const provinsiMatch = address.match(/(?:prov(?:insi)?\.?\s*)([a-zA-Z0-9 \-]+)/i);
+            if (provinsiMatch) {
+                components.provinsi = provinsiMatch[1].replace(/[,\.].*$/, '').trim();
+            }
+        }
+
+        // Extract administrative divisions using regex patterns (fallbacks)
         const patterns = [
             { key: 'provinsi', pattern: /\b(dki jakarta|jawa (barat|tengah|timur)|bali|sumatera (utara|barat|selatan|tengah|timur)|kalimantan (barat|tengah|selatan|timur|utara)|sulawesi (utara|tengah|selatan|barat|tenggara|utara)|papua|maluku|nusa tenggara (barat|timur))\b/gi },
             { key: 'kabupaten_kota', pattern: /\b(jakarta (pusat|selatan|barat|utara|timur)|bogor|bekasi|bandung|semarang|solo|surabaya|malang|medan|padang|denpasar|buleleng)\b/gi },
@@ -175,19 +223,16 @@ class IndonesianAddressParser {
         ];
 
         patterns.forEach(({ key, pattern }) => {
-            const match = address.match(pattern);
-            if (match) {
-                components[key] = match[0];
+            if (!components[key]) {
+                const match = address.match(pattern);
+                if (match) {
+                    components[key] = match[0];
+                }
             }
         });
 
         // Extract detail address (everything else)
-        const detailParts = address.split(' ').filter(word => {
-            return !Object.values(components).some(comp => 
-                comp && comp.toLowerCase().includes(word.toLowerCase())
-            );
-        });
-        components.detail_alamat = detailParts.join(' ');
+        components.detail_alamat = address;
 
         return components;
     }
